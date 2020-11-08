@@ -1,0 +1,12 @@
+- pipeline: "demo build-test pipeline"
+  trigger_mode: "ON_EVERY_PUSH"
+  trigger_condition: "ALWAYS"
+  ref_name: "scaffolding-sandbox"
+  ref_type: "BRANCH"  
+#Buddy_Actions()
+#Buddy_Variable_Declarations()
+#Buddy_Service_Declarations()
+#Buddy_Cache_Declaration()
+    mount_filesystem_path: "/buddy/scaffolding-sandbox"
+    shell: "BASH"
+    trigger_condition: "ALWAYS"

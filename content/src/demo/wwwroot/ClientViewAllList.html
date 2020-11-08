@@ -1,0 +1,253 @@
+<html>
+	<head>
+  		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="cache-control" content="no-cache" />
+		<link href="http://code.jquery.com/ui/1.12.1/themes/cupertino/jquery-ui.css" rel="stylesheet" type="text/css"/>
+		<link href="../css/ui.jqgrid.css" rel="stylesheet" type="text/css"/>
+		<style>
+			.ui-jqgrid tr.jqgrow td,
+			.ui-jqgrid th {
+				font-size:0.8em
+			}
+		</style> 
+	</head>
+<script type="text/javascript" src="../js/jquery.jqGrid.min.js"/>
+<script type="text/javascript" src="../js/jquery.jqGrid.src.js"/>
+<script type="text/javascript" src="../js/dual-list-box.min.js"/>
+
+<script type="text/javascript">
+
+ 	$( document ).on('refreshClientGrid', function() {
+        populateClientGrid();
+    });
+
+	$( document ).ready(function()
+	{
+		$('#selectForClient').DualListBox();
+		
+		var rowNum, height;
+		var caption = '';
+		var modelUrl = "$modelUrl";
+		console.log( 'modelurl is ' + modelUrl );
+		if (  modelUrl == 'null' || modelUrl == '' || modelUrl == '$modelUrl' )
+		{
+			caption 	= 'Client List';
+			modelUrl 	= '/Client/viewAll';
+			rowNum		= 20;
+			height		= 280; 
+		}
+		else
+		{
+			rowNum		= 5;
+			height		= 100;
+			$('#dualListButtonForClientDivId').show(); 
+		}
+			
+        var grid = jQuery("#ClientGridTableId");
+        grid.jqGrid({
+        	url: modelUrl,
+			datatype: "json",
+																										    																				    						colNames:[ 'Client Id','Id','Name', ],
+   			colModel:[ {name:'clientId',index:'clientId',hidden:true},{name:'id',index:'id',align:'center'},{name:'name',index:'name',align:'center'}, ],
+   			loadtext: "Loading Client List",
+			altRows:true,
+			sortable:true,
+			autowidth:true,
+			shrinkToFit : true,
+			multiselect:true,
+		    viewrecords:false,
+		    gridview:true,
+			pginput:false,
+			pgbuttons:false,
+			viewrecord:false,
+		    rowNum:rowNum,
+		    height:height,
+		    rownumbers:true,
+		    hidegrid:true,
+		    caption: caption
+		}); 
+		
+		// populate the grid
+		populateClientGrid();
+	});
+
+	jQuery('#ClientGridTableId').dblclick(function () 
+	{
+		editClient();
+	}); 			    
+
+	function addClient()
+	{
+		var title = "Add New Client";
+		var url	= ""; 		
+		var parentUrl = "${parentUrl}";
+		var eventToFire = "refreshClientGrid";
+		
+		if( url == 'null' || url == '' )
+			url = "/html/ClientProfileForm.html?action=create";
+		else // append the parent if there is an addUrl provided
+			url = url + "&parentUrl=" + parentUrl;
+			
+		inspectionDialog( title, url, eventToFire );
+	}
+
+	function editClient()
+	{
+		var id 	= getSelectedIdFromGrid( jQuery('#ClientGridTableId'), 'clientId' );
+	
+		if ( id != null )
+		{
+			var title = "Edit Client";
+			var url = '/html/ClientProfileForm.html?action=edit&clientId=' + id;
+			
+			var eventToFire = "refreshClientGrid";
+			
+			inspectionDialog( title, url, eventToFire );
+		}
+		else
+		{
+			BootstrapDialog.alert('Please first select a Client');
+		}	
+	}
+	
+	function deleteClient()
+	{
+		var ids 	= getSelectedIdsFromGrid( jQuery('#ClientGridTableId'), 'clientId' );
+		if ( ids == null )
+		{
+			BootstrapDialog.alert('Please first select a Client');
+		}
+		else
+		{
+	    	BootstrapDialog.confirm
+	    	({
+	        	title: 'WARNING',
+	        	message: 'Are you sure?',
+	            type: BootstrapDialog.TYPE_WARNING, // <-- Default value is BootstrapDialog.TYPE_PRIMARY
+	            closable: true, // <-- Default value is false
+	            btnCancelLabel: 'No', // <-- Default value is 'Cancel',
+	            btnOKLabel: 'Yes', // <-- Default value is 'OK',
+	            btnOKClass: 'btn-warning', // <-- If you didn't specify it, dialog type will be used,
+	            callback: function(result) 
+	            {
+	                // result will be true if button was click, while it will be false if 
+	                // users close the dialog directly.
+	                if(result) 
+	                {
+	                	var url = "${deleteUrl}";
+	                	
+	                	if ( url == '' || url == 'null' )
+	                		url = '/Client/delete?a=a';
+	                	
+	                	for (i = 0; i < ids.length; i++)
+	                	{
+	                		url = url + '&childIds=' + ids[i];
+	                	}
+
+console.log( 'delete url is ' + url );
+	                							
+						jQuery.ajax(
+						{
+					  		url: url,
+					  		dataType: 'json',
+						}).always(function( data ) 
+						{
+							populateClientGrid()
+						});		
+	                }
+	            }
+	    	});
+	    }
+	}
+
+	function addClientFromAllList()
+	{
+		var sourceUrl	= '/Client/viewAll';
+		var modelUrl 	= "${modelUrl}";
+		var value 		= 'clientId';
+		var text 		= 'name';
+		var roleName	= getParam( "roleName" );
+		
+		if ( roleName == 'null' || roleName == null )
+			roleName = 'All-Client';
+			
+		multiselect( sourceUrl, modelUrl, roleName, value, text, assignClientSelectionsFromAllList );  
+	}
+
+	function assignClientSelectionsFromAllList( ids )
+	{
+		var url = "${parentUrl}";
+		for (i = 0; i < ids.length; i++)
+    	{
+    		url = url + '&childIds=' + ids[i];
+    	}
+				
+		jQuery.ajax(
+		{
+	  		url: url,
+	  		dataType: 'json',
+		}).always(function( data ) 
+		{
+			populateClientGrid()
+		});		
+	}
+	
+	function populateClientGrid()
+	{
+		$('#loadingDivId').show();
+		$('#ClientGridTableId').trigger( 'reloadGrid' );
+		$('#loadingDivId').hide();			
+	}
+	
+</script>
+
+<table id="ClientGridTableId"></table>
+<div>
+<br>
+<table
+  <tr>
+    <td>
+		<a href="#" data-toggle="tooltip" data-placement="below" title="refresh" onclick="populateClientGrid()" >
+		    <button type="button" class="btn btn-info btn-sm">
+		      <span class="glyphicon glyphicon-refresh">
+		      </span>
+			</button>
+		</a>
+		<a href="#" data-toggle="tooltip" data-placement="below" title="add Client" onclick="addClient()">
+		    <button type="button" class="btn btn-outline-primary">
+		      <span class="glyphicon glyphicon-plus">
+		      </span>
+			</button>
+		</a>
+		<a href="#" data-toggle="tooltip" data-placement="below" title="edit Client" onclick="editClient()" >
+		    <button type="button" class="btn btn-outline-primary">
+		      <span class="glyphicon glyphicon-pencil">
+		      </span>
+			</button>
+		</a>
+		<a href="#" data-toggle="tooltip" data-placement="below" title="delete Client" onclick="deleteClient()">
+		    <button type="button" class="btn btn-outline-primary">
+		      <span class="glyphicon glyphicon-trash">
+		      </span>
+			</button>
+		</a>
+	  </td>
+	  <td>
+		<div id="dualListButtonForClientDivId" style="display:none">
+		  <a href="#" data-toggle="tooltip" data-placement="below" title="add Client From List" onclick="addClientFromAllList()">
+		    <button type="button" class="btn btn-outline-primary">
+		      <span class="glyphicon glyphicon-th-list">
+		      </span>
+			</button>
+		  </a>
+		<div>
+ 	  </td>
+ 	</tr>
+</table>
+
+<div id="loadingDivId" style="display:none;color:black">
+  loading all Client entities...<image src="../img/load_new.gif" width=48 height=48/>
+</div>				  				  
+
+</html>

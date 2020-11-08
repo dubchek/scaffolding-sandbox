@@ -1,0 +1,120 @@
+<!--
+  Turnstone Biologics Confidential
+  
+  2018 Turnstone Biologics, Inc.
+  All Rights Reserved.
+  
+  This file is subject to the terms and conditions defined in
+  file 'license.txt', which is part of this source code package.
+   
+  Contributors :
+        Turnstone Biologics - General Release
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>  
+	<groupId>com.occulue</groupId>  
+	<artifactId>demo</artifactId>  
+	<version>1.0.0</version>  
+
+    <packaging>pom</packaging>
+
+    <repositories>
+        <repository>
+            <id>maven central</id>
+            <url>https://repo.maven.apache.org/maven2/</url>
+        </repository>
+    </repositories>
+
+	<build>
+
+		<plugins>
+
+<!-- Apache maven ant plugin -->
+	  		<plugin>
+		        <artifactId>maven-antrun-plugin</artifactId>
+		        <version>1.7</version>
+				<dependencies>
+                        <dependency>
+                            <groupId>ant-contrib</groupId>
+                            <artifactId>ant-contrib</artifactId>
+                            <version>1.0b3</version>
+                            <exclusions>
+                                <exclusion>
+                                    <groupId>ant</groupId>
+                                    <artifactId>ant</artifactId>
+                                </exclusion>
+                            </exclusions>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.apache.ant</groupId>
+                            <artifactId>ant-nodeps</artifactId>
+                            <version>1.8.1</version>
+                        </dependency>
+                    </dependencies>
+		  		<configuration>
+		  		</configuration>
+				<executions>
+		        	<execution>
+			            <id>nuget</id>
+			            <phase>install</phase>
+			            <inherited>false</inherited>
+			            <configuration>
+			            	<build_dir>${project.basedir}</build_dir>
+			              <target>
+			                <ant antfile="publish.xml">
+			                  <target name="nuget"/>
+			                </ant>
+						  </target>                
+			            </configuration>
+			            <goals>
+				        	<goal>run</goal>
+			            </goals>
+		          	</execution>
+<!-- git execution -->
+		     		<execution>
+			        	<id>git</id>
+			     		<phase>compile</phase>
+			            <inherited>false</inherited>
+			            <configuration>
+						  <target name = "git">
+                            <taskdef resource="net/sf/antcontrib/antcontrib.properties"/>
+							<if>
+							  <equals arg1="${git}" arg2="true" />
+							  <then>
+							      <if>
+							        <os family="unix"/>
+									<then>
+								      <exec executable="dos2unix" logError="false" failonerror="false" failifexecutionfails="false">
+									    <arg value="${basedir}/*.sh"/>
+									  </exec>
+									  <exec executable="chmod" logError="false" failonerror="false" failifexecutionfails="false">
+									    <arg value="+x"/>
+										<arg value="${basedir}/*.sh"/>
+									  </exec>
+									</then>
+							      </if>
+   							      <exec executable="bash" logError="false" failonerror="false" failifexecutionfails="false">
+							        <arg value="--login"/>
+							        <arg value="${basedir}/gitpush.sh"/>
+									<arg value="${basedir}"/>
+							      </exec>	
+							      
+							  </then>
+							</if>
+						  </target>
+						</configuration>
+		                <goals>
+			            	<goal>run</goal>
+			            </goals>
+				  	</execution>          
+	    		</executions>    		
+			</plugin>    
+		
+		</plugins>
+
+	</build>
+	
+</project>

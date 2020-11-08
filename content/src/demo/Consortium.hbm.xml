@@ -1,0 +1,28 @@
+<!--  
+  realMethods Confidential
+  
+  2019 realMethods, Inc.
+  All Rights Reserved.
+  
+  This file is subject to the terms and conditions defined in
+  file 'license.txt', which is part of this source code package.
+   
+  Contributors :
+        realMethods Inc - General Release
+-->
+<?xml version="1.0" encoding="utf-8" ?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2" 
+                   assembly="demo" 
+                   namespace="demo.Models">
+
+<!-- AIB : #hibernateClassDeclaration() -->        
+  <class name="Consortium" 
+         table="consortium"
+         abstract="false">         
+     <id name="consortiumId" type="long" >
+      <generator class="native"/>    
+    </id>
+           </class>
+<!-- ~AIB -->
+
+</hibernate-mapping>

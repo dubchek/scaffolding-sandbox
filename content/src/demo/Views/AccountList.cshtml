@@ -1,0 +1,324 @@
+<!--
+  Turnstone Biologics Confidential
+  
+  2018 Turnstone Biologics, Inc.
+  All Rights Reserved.
+  
+  This file is subject to the terms and conditions defined in
+  file 'license.txt', which is part of this source code package.
+   
+  Contributors :
+        Turnstone Biologics - General Release
+-->
+
+
+<html>
+
+	<head>
+  		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="cache-control" content="no-cache" />
+		<link href="http://code.jquery.com/ui/1.12.1/themes/cupertino/jquery-ui.css" rel="stylesheet" type="text/css"/>
+		<link href="../css/ui.jqgrid.css" rel="stylesheet" type="text/css"/>
+		<style>
+			.ui-jqgrid tr.jqgrow td,
+			.ui-jqgrid th {
+				font-size:0.8em
+			}
+		</style> 
+	</head>
+	
+<!-- commmon javascripts -->
+<script type="text/javascript" src="../js/jquery.jqGrid.min.js"/>
+<script type="text/javascript" src="../js/jquery.jqGrid.src.js"/>
+<script type="text/javascript" src="../js/dual-list-box.min.js"/>
+
+<!-- script execution -->
+<script type="text/javascript">
+
+	// *************************************************************
+	// event handler for a grid refresh forces a re-populate 
+	// *************************************************************
+ 	$( document ).on('refreshAccountGrid', function() {
+        populateAccountGrid();
+    });
+
+	// *************************************************************
+	// execution on document (page) preparation
+	// *************************************************************
+	$( document ).ready(function()
+	{
+		$('#selectForAccount').DualListBox();
+		
+		var rowNum, height;
+		var caption = '';
+		var modelUrl = '@Html.Raw(ViewData["modelUrl"])';
+		
+		console.log( 'modelUrl is ' + modelUrl );
+		
+		// if the the modelUrl is not provided, load all Account models
+		if ( modelUrl == null || modelUrl == 'null' || modelUrl == '' )
+		{
+			caption 	= 'Account List';
+			modelUrl 	= '/Account/loadAll';
+			rowNum		= 20;
+			height		= 280; 
+		}
+		else	// only show 5 rows with a minimal height, and display the multi-select button option
+		{
+			rowNum		= 5;
+			height		= 100;
+			$('#dualListButtonForAccountDivId').show(); 
+		}
+			
+		// *************************************************************				
+		// prepare the Account grid
+		// *************************************************************			
+        var grid = jQuery("#AccountGridTableId");
+        grid.jqGrid({
+        	url: modelUrl,
+			datatype: "json",
+																										    																				    																				    						colNames:[ 'Account Id','Id','Amount','Currency', ],
+   			colModel:[ {name:'accountId',index:'accountId',hidden:true},{name:'id',index:'id',align:'center'},{name:'amount',index:'amount',align:'center'},{name:'currency',index:'currency',align:'center'}, ],
+   			loadtext: "Loading Account List",
+			altRows:true,
+			sortable:true,
+			autowidth:true,
+			shrinkToFit : true,
+			multiselect:true,
+		    viewrecords:false,
+		    gridview:true,
+			pginput:false,
+			pgbuttons:false,
+			viewrecord:false,
+		    rowNum:rowNum,
+		    height:height,
+		    rownumbers:true,
+		    hidegrid:true,
+		    caption: caption
+		}); 
+		
+		// populate the grid
+		populateAccountGrid();
+	});
+
+	// *************************************************************
+	// double click event handler on a grid item to force an edit 
+	// event on a Account model
+	// *************************************************************
+	jQuery('#AccountGridTableId').dblclick(function () 
+	{
+		editAccount();
+	}); 			    
+
+	// *************************************************************
+	// display the inspection dialog embedded with the 
+	// Account form in creation mode
+	// ************************************************************* 
+	function addAccount()
+	{
+		var title = "Add New Account";
+		var url	= '@Html.Raw(ViewData["addUrl"])';		
+		var parentUrl = '@Html.Raw(ViewData["parentUrl"])';
+		var eventToFire = "refreshAccountGrid";
+		
+		if( url == null || url == 'null' || url == '' )
+			url = "/Account/Profile?action=create";
+		else // append the parent if there is an addUrl provided
+			url = url + "&parentUrl=" + parentUrl;
+			
+		inspectionDialog( title, url, eventToFire );
+	}
+
+	// *************************************************************
+	// display the inspection dialog embedded with the Account 
+	// form in edit mode
+	// *************************************************************
+	function editAccount()
+	{
+		var id 	= getSelectedIdFromGrid( jQuery('#AccountGridTableId'), 'accountId' );
+	
+		if ( id != null )
+		{
+			var title = "Edit Account";
+			var url = '/Account/Profile?action=edit&accountId=' + id;
+			
+			var eventToFire = "refreshAccountGrid";
+			
+			inspectionDialog( title, url, eventToFire );
+		}
+		else
+		{
+			BootstrapDialog.alert('Please first select a Account');
+		}	
+	}
+	
+	// *************************************************************
+	// upon confirmation, call a Account controller via .ajax 
+	// to delete one or more Account models
+	// *************************************************************
+	function deleteAccount()
+	{
+		var ids 	= getSelectedIdsFromGrid( jQuery('#AccountGridTableId'), 'accountId' );
+		if ( ids == null )
+		{
+			BootstrapDialog.alert('Please first select a Account');
+		}
+		else
+		{
+	    	BootstrapDialog.confirm
+	    	({
+	        	title: 'WARNING',
+	        	message: 'Are you sure?',
+	            type: BootstrapDialog.TYPE_WARNING, // <-- Default value is BootstrapDialog.TYPE_PRIMARY
+	            closable: true, // <-- Default value is false
+	            btnCancelLabel: 'No', // <-- Default value is 'Cancel',
+	            btnOKLabel: 'Yes', // <-- Default value is 'OK',
+	            btnOKClass: 'btn-warning', // <-- If you didn't specify it, dialog type will be used,
+	            callback: function(result) 
+	            {
+	                // result will be true if button was click, while it will be false if 
+	                // users close the dialog directly.
+	                if(result) 
+	                {
+	                	var url = '@Html.Raw(ViewData["deleteUrl"])';
+	                	
+	                	if ( url == null || url == '' || url == 'null' )
+	                		url = '/Account/delete?a=a';
+	                	
+	                	for (i = 0; i < ids.length; i++)
+	                	{
+	                		url = url + '&childIds=' + ids[i];
+	                	}
+
+						console.log( 'delete url is ' + url );
+	                							
+						jQuery.ajax(
+						{
+					  		url: url,
+					  		dataType: 'json',
+						}).always(function( data ) 
+						{
+							populateAccountGrid()
+						});		
+	                }
+	            }
+	    	});
+	    }
+	}
+
+	// *************************************************************
+	// handles calling the multi-select screen, providing details
+	// on both the source list and the receiver list
+	// *************************************************************
+	function addAccountFromAllList()
+	{
+		var sourceUrl	= '/Account/loadAll';
+		var modelUrl 	= '@Html.Raw(ViewData["modelUrl"])';
+		var value 		= 'accountId';
+		var text 		= 'id';
+		var roleName	= '@Html.Raw(ViewData["roleName"])';
+		
+		if ( roleName == null || roleName == 'null' || roleName == null )
+			roleName = 'All-Account';
+			
+		multiselect( sourceUrl, modelUrl, roleName, value, text, assignAccountSelectionsFromAllList );  
+	}
+
+	// *************************************************************
+	// helper function to assign the provided children ids to the
+	// Account as the parent
+	// *************************************************************
+	function assignAccountSelectionsFromAllList( ids )
+	{
+		var url = '@Html.Raw(ViewData["parentUrl"])';
+		for (i = 0; i < ids.length; i++)
+    	{
+    		url = url + '&childIds=' + ids[i];
+    	}
+				
+		jQuery.ajax(
+		{
+	  		url: url,
+	  		dataType: 'json',
+		}).always(function( data ) 
+		{
+			populateAccountGrid()
+		});		
+	}
+	
+	// *************************************************************
+	// populate the grid triggering a reload event
+	// *************************************************************
+	function populateAccountGrid()
+	{
+		$('#loadingDivId').show();
+		$('#AccountGridTableId').trigger( 'reloadGrid' );
+		$('#loadingDivId').hide();			
+	}
+	
+</script>
+
+<!-- grid table declaration -->
+<table id="AccountGridTableId"></table>
+
+<div>
+  <br>
+  <table
+    <tr>
+      <td>
+      
+        <!-- grid refresh button -->
+		<a href="#" data-toggle="tooltip" data-placement="below" title="refresh" onclick="populateAccountGrid()" >
+		    <button type="button" class="btn btn-info btn-xs">
+		      <span class="glyphicon glyphicon-refresh">
+		      </span>
+			</button>
+		</a>
+		
+		<!-- button to add a new Account model -->
+		<a href="#" data-toggle="tooltip" data-placement="below" title="add Account" onclick="addAccount()">
+		    <button type="button" class="btn btn-info btn-xs">
+		      <span class="glyphicon glyphicon-plus">
+		      </span>
+			</button>
+		</a>
+		
+		<!-- button to edit a selected Account model -->
+		<a href="#" data-toggle="tooltip" data-placement="below" title="edit Account" onclick="editAccount()" >
+		    <button type="button" class="btn btn-info btn-xs">
+		      <span class="glyphicon glyphicon-pencil">
+		      </span>
+			</button>
+		</a>
+		
+		<!-- button to delete one or more selected Account models -->
+		<a href="#" data-toggle="tooltip" data-placement="below" title="delete Account" onclick="deleteAccount()">
+		    <button type="button" class="btn btn-info btn-xs">
+		      <span class="glyphicon glyphicon-trash">
+		      </span>
+			</button>
+		</a>
+	  </td>
+	  <td>
+	  	<!-- button to add one or more existing Account models -->
+		<div id="dualListButtonForAccountDivId" style="display:none">
+		  <a href="#" data-toggle="tooltip" data-placement="below" title="add Account From List" onclick="addAccountFromAllList()">
+		    <button type="button" class="btn btn-info btn-xs">
+		      <span class="glyphicon glyphicon-th-list">
+		      </span>
+			</button>
+		  </a>
+		<div>
+ 	  </td>
+ 	</tr>
+  </table>
+
+  <!-- the indicator that the grid's contents are loading -->
+  <div id="loadingDivId" style="display:none;color:black">
+    loading all Account entities...<image src="../img/load_new.gif" width=48 height=48/>
+  </div>
+  				  				  
+</div>
+
+</html>
